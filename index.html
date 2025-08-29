@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Phát Video HLS - Hiển thị Manifest và Segment</title>
+    <title>Phát Video HLS - Phân tích Segment</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -73,12 +73,19 @@
         .url-text {
             word-break: break-all;
         }
+        #segment-types {
+            margin-top: 15px;
+        }
+        #segment-types ul {
+            padding-left: 20px;
+            margin: 5px 0;
+        }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h2>Phát Video HLS và Hiển thị Segment</h2>
+        <h2>Phát Video HLS và Phân tích Segment</h2>
         <div id="controls">
             <input type="text" id="url-input" placeholder="Nhập URL M3U8 hoặc để trống để dùng URL mặc định">
             <button id="load-button">Phát Video</button>
@@ -89,6 +96,10 @@
         <div id="info-panel">
             <p><strong>URL Manifest:</strong> <span id="manifest-url" class="url-text">Chưa có</span></p>
             <p><strong>Segment đang tải:</strong> <span id="current-segment" class="url-text">Chưa có</span></p>
+            <div id="segment-types">
+                <p><strong>Các loại Segment đã tải:</strong></p>
+                <ul id="segment-type-list"></ul>
+            </div>
         </div>
     </div>
 
@@ -98,22 +109,38 @@
         const urlParams = new URLSearchParams(window.location.search);
         const urlFromQuery = urlParams.get('url');
 
-        // Lấy các phần tử HTML
         const video = document.getElementById('video');
         const urlInput = document.getElementById('url-input');
         const loadButton = document.getElementById('load-button');
         const manifestUrlSpan = document.getElementById('manifest-url');
         const currentSegmentSpan = document.getElementById('current-segment');
+        const segmentTypeList = document.getElementById('segment-type-list');
 
         let hls;
+        const seenSegmentTypes = new Set();
 
         /**
-         * Hàm khởi tạo và phát video
-         * @param {string} manifestUri - URL của tệp M3U8
+         * Hàm phân tích URL để lấy "kiểu" của segment.
+         * Ví dụ: từ 'https://.../video-720p/media-1.ts', trả về 'video-720p'.
+         * @param {string} url - URL đầy đủ của segment.
+         * @returns {string} - Kiểu segment.
          */
+        function getSegmentTypeFromUrl(url) {
+            try {
+                const urlObj = new URL(url);
+                const pathParts = urlObj.pathname.split('/');
+                // Lấy phần tử cuối cùng trước tên tệp .ts
+                const type = pathParts[pathParts.length - 2]; 
+                return type || 'không xác định';
+            } catch (e) {
+                return 'không xác định';
+            }
+        }
+
         function playVideo(manifestUri) {
-            // Hiển thị URL manifest ngay lập tức
             manifestUrlSpan.textContent = manifestUri;
+            seenSegmentTypes.clear();
+            segmentTypeList.innerHTML = '';
 
             if (Hls.isSupported()) {
                 if (hls) {
@@ -123,21 +150,26 @@
                 hls = new Hls();
                 hls.attachMedia(video);
 
-                // Lắng nghe sự kiện tải manifest
                 hls.on(Hls.Events.MANIFEST_PARSED, function() {
                     console.log("Manifest đã được phân tích thành công!");
                     video.play();
                 });
 
-                // Lắng nghe sự kiện tải segment (TS)
                 hls.on(Hls.Events.FRAG_BUFFERED, function(event, data) {
-                    // data.frag là đối tượng chứa thông tin của segment vừa được tải
                     if (data.frag && data.frag.url) {
-                        currentSegmentSpan.textContent = data.frag.url;
+                        const segmentUrl = data.frag.url;
+                        currentSegmentSpan.textContent = segmentUrl;
+
+                        const segmentType = getSegmentTypeFromUrl(segmentUrl);
+                        if (segmentType !== 'không xác định' && !seenSegmentTypes.has(segmentType)) {
+                            seenSegmentTypes.add(segmentType);
+                            const listItem = document.createElement('li');
+                            listItem.textContent = segmentType;
+                            segmentTypeList.appendChild(listItem);
+                        }
                     }
                 });
                 
-                // Lắng nghe các lỗi của HLS.js
                 hls.on(Hls.Events.ERROR, function(event, data) {
                     if (data.fatal) {
                         currentSegmentSpan.textContent = `Lỗi nghiêm trọng: ${data.details}`;
@@ -147,7 +179,6 @@
 
                 hls.loadSource(manifestUri);
             } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                // Trình duyệt hỗ trợ HLS native (như Safari)
                 video.src = manifestUri;
                 manifestUrlSpan.textContent = manifestUri;
                 currentSegmentSpan.textContent = 'Trình duyệt tự xử lý';
@@ -157,7 +188,6 @@
             }
         }
 
-        // Xử lý khi trang được tải lần đầu
         if (urlFromQuery) {
             urlInput.value = urlFromQuery;
             playVideo(urlFromQuery);
@@ -165,7 +195,6 @@
             urlInput.value = defaultManifestUri;
         }
 
-        // Gắn sự kiện cho nút "Phát Video"
         loadButton.addEventListener('click', () => {
             const userUrl = urlInput.value.trim();
             if (userUrl) {
