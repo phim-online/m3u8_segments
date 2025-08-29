@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phát Video HLS - Hiển thị Manifest và Segment</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f0f2f5;
+        }
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background-color: #fff;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 8px;
+            margin-bottom: 20px;
+        }
+        #controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        #url-input {
+            flex-grow: 1;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+        #load-button {
+            padding: 12px 25px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+        #load-button:hover {
+            background-color: #0056b3;
+        }
+        video {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            background-color: #000;
+        }
+        #info-panel {
+            margin-top: 25px;
+            background-color: #e9ecef;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 5px solid #007bff;
+        }
+        #info-panel p {
+            margin: 8px 0;
+            line-height: 1.6;
+        }
+        #info-panel strong {
+            color: #0056b3;
+        }
+        .url-text {
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Phát Video HLS và Hiển thị Segment</h2>
+        <div id="controls">
+            <input type="text" id="url-input" placeholder="Nhập URL M3U8 hoặc để trống để dùng URL mặc định">
+            <button id="load-button">Phát Video</button>
+        </div>
+        
+        <video id="video" controls></video>
+        
+        <div id="info-panel">
+            <p><strong>URL Manifest:</strong> <span id="manifest-url" class="url-text">Chưa có</span></p>
+            <p><strong>Segment đang tải:</strong> <span id="current-segment" class="url-text">Chưa có</span></p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
+    <script>
+        const defaultManifestUri = 'https://s5.phim1280.tv/20250516/FrrHOHan/index.m3u8';
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlFromQuery = urlParams.get('url');
+
+        // Lấy các phần tử HTML
+        const video = document.getElementById('video');
+        const urlInput = document.getElementById('url-input');
+        const loadButton = document.getElementById('load-button');
+        const manifestUrlSpan = document.getElementById('manifest-url');
+        const currentSegmentSpan = document.getElementById('current-segment');
+
+        let hls;
+
+        /**
+         * Hàm khởi tạo và phát video
+         * @param {string} manifestUri - URL của tệp M3U8
+         */
+        function playVideo(manifestUri) {
+            // Hiển thị URL manifest ngay lập tức
+            manifestUrlSpan.textContent = manifestUri;
+
+            if (Hls.isSupported()) {
+                if (hls) {
+                    hls.destroy();
+                }
+                
+                hls = new Hls();
+                hls.attachMedia(video);
+
+                // Lắng nghe sự kiện tải manifest
+                hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                    console.log("Manifest đã được phân tích thành công!");
+                    video.play();
+                });
+
+                // Lắng nghe sự kiện tải segment (TS)
+                hls.on(Hls.Events.FRAG_BUFFERED, function(event, data) {
+                    // data.frag là đối tượng chứa thông tin của segment vừa được tải
+                    if (data.frag && data.frag.url) {
+                        currentSegmentSpan.textContent = data.frag.url;
+                    }
+                });
+                
+                // Lắng nghe các lỗi của HLS.js
+                hls.on(Hls.Events.ERROR, function(event, data) {
+                    if (data.fatal) {
+                        currentSegmentSpan.textContent = `Lỗi nghiêm trọng: ${data.details}`;
+                        console.error('Lỗi nghiêm trọng:', data.details, data.url);
+                    }
+                });
+
+                hls.loadSource(manifestUri);
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                // Trình duyệt hỗ trợ HLS native (như Safari)
+                video.src = manifestUri;
+                manifestUrlSpan.textContent = manifestUri;
+                currentSegmentSpan.textContent = 'Trình duyệt tự xử lý';
+            } else {
+                currentSegmentSpan.textContent = 'Trình duyệt không hỗ trợ HLS';
+                console.error('Trình duyệt không hỗ trợ HLS');
+            }
+        }
+
+        // Xử lý khi trang được tải lần đầu
+        if (urlFromQuery) {
+            urlInput.value = urlFromQuery;
+            playVideo(urlFromQuery);
+        } else {
+            urlInput.value = defaultManifestUri;
+        }
+
+        // Gắn sự kiện cho nút "Phát Video"
+        loadButton.addEventListener('click', () => {
+            const userUrl = urlInput.value.trim();
+            if (userUrl) {
+                playVideo(userUrl);
+            }
+        });
+    </script>
+</body>
+</html>
