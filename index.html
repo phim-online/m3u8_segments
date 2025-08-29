@@ -95,7 +95,7 @@
         
         <div id="info-panel">
             <p><strong>URL Manifest:</strong> <span id="manifest-url" class="url-text">Chưa có</span></p>
-            <p><strong>Segment đang tải:</strong> <span id="current-segment" class="url-text">Chưa có</span></p>
+            <p><strong>Segment đang phát:</strong> <span id="current-segment" class="url-text">Chưa có</span></p>
             <div id="segment-types">
                 <p><strong>Các loại Segment đã tải:</strong></p>
                 <ul id="segment-type-list"></ul>
@@ -119,19 +119,12 @@
         let hls;
         const seenSegmentTypes = new Set();
 
-        /**
-         * Hàm phân tích URL để lấy "kiểu" của segment.
-         * Ví dụ: từ 'https://.../video-720p/media-1.ts', trả về 'video-720p'.
-         * @param {string} url - URL đầy đủ của segment.
-         * @returns {string} - Kiểu segment.
-         */
+        // Hàm phân tích URL để lấy loại segment
         function getSegmentTypeFromUrl(url) {
             try {
                 const urlObj = new URL(url);
                 const pathParts = urlObj.pathname.split('/');
-                // Lấy phần tử cuối cùng trước tên tệp .ts
-                const type = pathParts[pathParts.length - 2]; 
-                return type || 'không xác định';
+                return pathParts[pathParts.length - 2] || 'không xác định';
             } catch (e) {
                 return 'không xác định';
             }
@@ -155,11 +148,10 @@
                     video.play();
                 });
 
+                // Khi một segment được tải xong vào buffer
                 hls.on(Hls.Events.FRAG_BUFFERED, function(event, data) {
                     if (data.frag && data.frag.url) {
                         const segmentUrl = data.frag.url;
-                        currentSegmentSpan.textContent = segmentUrl;
-
                         const segmentType = getSegmentTypeFromUrl(segmentUrl);
                         if (segmentType !== 'không xác định' && !seenSegmentTypes.has(segmentType)) {
                             seenSegmentTypes.add(segmentType);
@@ -167,6 +159,13 @@
                             listItem.textContent = segmentType;
                             segmentTypeList.appendChild(listItem);
                         }
+                    }
+                });
+
+                // Khi video chuyển sang phát segment mới
+                hls.on(Hls.Events.FRAG_CHANGED, function(event, data) {
+                    if (data.frag && data.frag.url) {
+                        currentSegmentSpan.textContent = data.frag.url;
                     }
                 });
                 
