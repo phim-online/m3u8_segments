@@ -1,198 +1,193 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Phát Video HLS - Segment Log</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            background-color: #f0f2f5;
-        }
-        .container {
-            max-width: 900px;
-            margin: auto;
-            background-color: #fff;
-            padding: 25px;
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-        h2 {
-            color: #333;
-            border-bottom: 2px solid #007bff;
-            padding-bottom: 8px;
-            margin-bottom: 20px;
-        }
-        #controls {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-        #url-input {
-            flex-grow: 1;
-            padding: 12px;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            font-size: 16px;
-        }
-        #load-button {
-            padding: 12px 25px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: background-color 0.3s ease;
-        }
-        #load-button:hover {
-            background-color: #0056b3;
-        }
-        video {
-            width: 100%;
-            height: auto;
-            border-radius: 8px;
-            background-color: #000;
-        }
-        #info-panel {
-            margin-top: 25px;
-            background-color: #e9ecef;
-            padding: 20px;
-            border-radius: 8px;
-            border-left: 5px solid #007bff;
-        }
-        #info-panel p {
-            margin: 8px 0;
-            line-height: 1.6;
-        }
-        #info-panel strong {
-            color: #0056b3;
-        }
-        .url-text {
-            word-break: break-all;
-        }
-        #segment-log {
-            margin-top: 15px;
-        }
-        #segment-log ul {
-            padding-left: 20px;
-            margin: 5px 0;
-            max-height: 250px;
-            overflow-y: auto;
-        }
-        #segment-log li {
-            font-size: 14px;
-            margin-bottom: 4px;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HLS Player + Segment Tag Viewer</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background-color: #f0f2f5;
+    }
+    .container {
+      max-width: 900px;
+      margin: auto;
+      background-color: #fff;
+      padding: 25px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    h2 {
+      color: #333;
+      border-bottom: 2px solid #007bff;
+      padding-bottom: 8px;
+      margin-bottom: 20px;
+    }
+    #controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    #url-input {
+      flex-grow: 1;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 16px;
+    }
+    #load-button {
+      padding: 12px 25px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background-color 0.3s ease;
+    }
+    #load-button:hover {
+      background-color: #0056b3;
+    }
+    video {
+      width: 100%;
+      height: auto;
+      border-radius: 8px;
+      background-color: #000;
+    }
+    #info-panel {
+      margin-top: 25px;
+      background-color: #e9ecef;
+      padding: 20px;
+      border-radius: 8px;
+      border-left: 5px solid #007bff;
+    }
+    #info-panel p {
+      margin: 8px 0;
+      line-height: 1.6;
+    }
+    #info-panel strong {
+      color: #0056b3;
+    }
+    .url-text {
+      word-break: break-all;
+    }
+    #segment-meta {
+      margin-top: 20px;
+      padding: 15px;
+      background: #fdfdfd;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    pre {
+      background: #f1f3f5;
+      padding: 10px;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-size: 13px;
+    }
+  </style>
 </head>
 <body>
-
-    <div class="container">
-        <h2>Phát Video HLS và Xem Segment</h2>
-        <div id="controls">
-            <input type="text" id="url-input" placeholder="Nhập URL M3U8 hoặc để trống để dùng URL mặc định">
-            <button id="load-button">Phát Video</button>
-        </div>
-        
-        <video id="video" controls></video>
-        
-        <div id="info-panel">
-            <p><strong>URL Manifest:</strong> <span id="manifest-url" class="url-text">Chưa có</span></p>
-            <p><strong>Segment đang phát:</strong> <span id="current-segment" class="url-text">Chưa có</span></p>
-            <div id="segment-log">
-                <p><strong>20 segment gần nhất:</strong></p>
-                <ul id="segment-list"></ul>
-            </div>
-        </div>
+  <div class="container">
+    <h2>HLS Player + Segment Tag Viewer</h2>
+    <div id="controls">
+      <input type="text" id="url-input" placeholder="Nhập URL M3U8 hoặc để trống để dùng mặc định">
+      <button id="load-button">Phát Video</button>
     </div>
+    
+    <video id="video" controls></video>
+    
+    <div id="info-panel">
+      <p><strong>URL Manifest:</strong> <span id="manifest-url" class="url-text">Chưa có</span></p>
+      <p><strong>Segment đang phát:</strong> <span id="current-segment" class="url-text">Chưa có</span></p>
+      
+      <div id="segment-meta">
+        <p><strong>Tags của segment:</strong></p>
+        <pre id="segment-tags">(Chưa có)</pre>
+      </div>
+    </div>
+  </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/0.5.14/hls.min.js"></script>
-    <script>
-        const defaultManifestUri = 'https://s5.phim1280.tv/20250516/FrrHOHan/index.m3u8';
-        const urlParams = new URLSearchParams(window.location.search);
-        const urlFromQuery = urlParams.get('url');
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
+  <script>
+    const defaultManifestUri = 'https://s5.phim1280.tv/20250516/FrrHOHan/index.m3u8';
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlFromQuery = urlParams.get('url');
 
-        const video = document.getElementById('video');
-        const urlInput = document.getElementById('url-input');
-        const loadButton = document.getElementById('load-button');
-        const manifestUrlSpan = document.getElementById('manifest-url');
-        const currentSegmentSpan = document.getElementById('current-segment');
-        const segmentList = document.getElementById('segment-list');
+    const video = document.getElementById('video');
+    const urlInput = document.getElementById('url-input');
+    const loadButton = document.getElementById('load-button');
+    const manifestUrlSpan = document.getElementById('manifest-url');
+    const currentSegmentSpan = document.getElementById('current-segment');
+    const segmentTagsPre = document.getElementById('segment-tags');
 
-        let hls;
-        const maxSegments = 20;
+    let hls;
 
-        function addSegmentToLog(url) {
-            const li = document.createElement('li');
-            li.textContent = url;
-            segmentList.insertBefore(li, segmentList.firstChild);
+    function showSegmentMeta(frag) {
+      let tags = frag.tagList || [];
+      if (!Array.isArray(tags)) tags = [];
 
-            // Giữ tối đa 20 segment
-            while (segmentList.children.length > maxSegments) {
-                segmentList.removeChild(segmentList.lastChild);
-            }
-        }
+      const formatted = tags.map(t => {
+        if (Array.isArray(t)) return `#EXT-${t.join(':')}`;
+        return String(t).startsWith('#EXT') ? t : `#EXT-${t}`;
+      }).join('\n');
 
-        function playVideo(manifestUri) {
-            manifestUrlSpan.textContent = manifestUri;
-            segmentList.innerHTML = '';
-            currentSegmentSpan.textContent = 'Chưa có';
+      segmentTagsPre.textContent = formatted || '(Không có tag nào)';
+    }
 
-            if (Hls.isSupported()) {
-                if (hls) {
-                    hls.destroy();
-                }
-                
-                hls = new Hls();
-                hls.attachMedia(video);
+    function playVideo(manifestUri) {
+      manifestUrlSpan.textContent = manifestUri;
+      currentSegmentSpan.textContent = 'Đang tải...';
+      segmentTagsPre.textContent = '(Chưa có)';
 
-                hls.on(Hls.Events.MANIFEST_PARSED, function() {
-                    console.log("Manifest đã được phân tích thành công!");
-                    video.play();
-                });
+      if (Hls.isSupported()) {
+        if (hls) hls.destroy();
+        
+        hls = new Hls();
+        hls.attachMedia(video);
 
-                // Hiển thị segment đang phát và log lại
-                hls.on(Hls.Events.FRAG_CHANGED, function(event, data) {
-                    if (data.frag && data.frag.url) {
-                        currentSegmentSpan.textContent = data.frag.url;
-                        addSegmentToLog(data.frag.url);
-                    }
-                });
-                
-                hls.on(Hls.Events.ERROR, function(event, data) {
-                    if (data.fatal) {
-                        currentSegmentSpan.textContent = `Lỗi nghiêm trọng: ${data.details}`;
-                        console.error('Lỗi nghiêm trọng:', data.details, data.url);
-                    }
-                });
-
-                hls.loadSource(manifestUri);
-            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                video.src = manifestUri;
-                manifestUrlSpan.textContent = manifestUri;
-                currentSegmentSpan.textContent = 'Trình duyệt tự xử lý';
-            } else {
-                currentSegmentSpan.textContent = 'Trình duyệt không hỗ trợ HLS';
-                console.error('Trình duyệt không hỗ trợ HLS');
-            }
-        }
-
-        if (urlFromQuery) {
-            urlInput.value = urlFromQuery;
-            playVideo(urlFromQuery);
-        } else {
-            urlInput.value = defaultManifestUri;
-        }
-
-        loadButton.addEventListener('click', () => {
-            const userUrl = urlInput.value.trim();
-            if (userUrl) {
-                playVideo(userUrl);
-            }
+        hls.on(Hls.Events.MANIFEST_PARSED, function() {
+          video.play();
         });
-    </script>
+
+        hls.on(Hls.Events.FRAG_CHANGED, function(event, data) {
+          if (data.frag && data.frag.url) {
+            currentSegmentSpan.textContent = data.frag.url;
+            showSegmentMeta(data.frag);
+          }
+        });
+
+        hls.on(Hls.Events.ERROR, function(event, data) {
+          if (data.fatal) {
+            currentSegmentSpan.textContent = `Lỗi nghiêm trọng: ${data.details}`;
+          }
+        });
+
+        hls.loadSource(manifestUri);
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = manifestUri;
+        manifestUrlSpan.textContent = manifestUri;
+        currentSegmentSpan.textContent = 'Trình duyệt tự xử lý';
+      } else {
+        currentSegmentSpan.textContent = 'Trình duyệt không hỗ trợ HLS';
+      }
+    }
+
+    if (urlFromQuery) {
+      urlInput.value = urlFromQuery;
+      playVideo(urlFromQuery);
+    } else {
+      urlInput.value = defaultManifestUri;
+    }
+
+    loadButton.addEventListener('click', () => {
+      const userUrl = urlInput.value.trim();
+      if (userUrl) {
+        playVideo(userUrl);
+      }
+    });
+  </script>
 </body>
 </html>
