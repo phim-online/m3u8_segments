@@ -86,7 +86,14 @@
       border-radius: 6px;
       overflow-x: auto;
       font-size: 13px;
+      white-space: pre-wrap;
     }
+    .tag { display: block; }
+    .tag-INF { color: #007bff; font-weight: bold; }
+    .tag-DISCONTINUITY { color: #d9534f; font-weight: bold; }
+    .tag-KEY { color: #5bc0de; font-weight: bold; }
+    .tag-BYTERANGE { color: #f0ad4e; font-weight: bold; }
+    .tag-DEFAULT { color: #333; }
   </style>
 </head>
 <body>
@@ -125,16 +132,42 @@
 
     let hls;
 
+    // Map viết tắt → tên đầy đủ
+    const tagMap = {
+      'INF': '#EXTINF',
+      'DIS': '#EXT-X-DISCONTINUITY',
+      'DISCONTINUITY': '#EXT-X-DISCONTINUITY',
+      'KEY': '#EXT-X-KEY',
+      'BYTERANGE': '#EXT-X-BYTERANGE'
+    };
+
+    function formatTag(t) {
+      let fullTag = '';
+      if (Array.isArray(t)) {
+        const key = t[0].toUpperCase();
+        fullTag = (tagMap[key] || `#EXT-${key}`) + (t[1] ? `:${t[1]}` : '');
+      } else {
+        const str = String(t).replace(/^#EXT-/, '');
+        const key = str.split(':')[0].toUpperCase();
+        fullTag = tagMap[key] || `#EXT-${str}`;
+      }
+
+      // highlight class
+      let cssClass = 'tag-DEFAULT';
+      if (fullTag.startsWith('#EXTINF')) cssClass = 'tag-INF';
+      else if (fullTag.startsWith('#EXT-X-DISCONTINUITY')) cssClass = 'tag-DISCONTINUITY';
+      else if (fullTag.startsWith('#EXT-X-KEY')) cssClass = 'tag-KEY';
+      else if (fullTag.startsWith('#EXT-X-BYTERANGE')) cssClass = 'tag-BYTERANGE';
+
+      return `<span class="tag ${cssClass}">${fullTag}</span>`;
+    }
+
     function showSegmentMeta(frag) {
       let tags = frag.tagList || [];
       if (!Array.isArray(tags)) tags = [];
 
-      const formatted = tags.map(t => {
-        if (Array.isArray(t)) return `#EXT-${t.join(':')}`;
-        return String(t).startsWith('#EXT') ? t : `#EXT-${t}`;
-      }).join('\n');
-
-      segmentTagsPre.textContent = formatted || '(Không có tag nào)';
+      const formatted = tags.map(formatTag).join('\n');
+      segmentTagsPre.innerHTML = formatted || '(Không có tag nào)';
     }
 
     function playVideo(manifestUri) {
